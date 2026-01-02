@@ -4,44 +4,50 @@ import { OpenAIClient, AzureKeyCredential } from "@azure/openai";
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
     try {
-        // フロントエンドからのリクエストボディを取得
-        const { prompt } = req.body || {};
+        // フロントエンドから送られてくるデータ（body）を取得
+        const { examType, questionCount, difficulty, referenceUrl, referenceText } = req.body || {};
 
-        if (!prompt) {
-            context.res = { status: 400, body: "Prompt is required" };
-            return;
-        }
+        // 送られてきた情報を元にAIへの命令文（プロンプト）を作成
+        const prompt = `
+            以下の条件で試験問題を ${questionCount} 問作成してください。
+            - 試験タイプ: ${examType}
+            - 難易度: ${difficulty}
+            ${referenceText ? `- 参考テキスト: ${referenceText}` : ""}
+            ${referenceUrl ? `- 参考URL: ${referenceUrl}` : ""}
+            
+            レスポンスは必ず以下のJSON形式で返してください。
+            {"questions": [{"question": "問題文", "options": ["A", "B", "C", "D"], "answer": "正解"}]}
+        `;
 
-        // 環境変数の読み込み
         const endpoint = process.env.AZURE_OPENAI_ENDPOINT || "";
         const azureApiKey = process.env.AZURE_OPENAI_API_KEY || "";
-        
-        // ★重要: Azureで作成した「モデルのデプロイ名」を指定してください
-        // もしデプロイ名を環境変数に設定しているなら process.env.DEPLOYMENT_NAME 等に変えてください
-        const deploymentId = "gpt-4o-mini"; 
+        const deploymentId = "gpt-4o"; // Azureで設定したデプロイ名
 
         const client = new OpenAIClient(endpoint, new AzureKeyCredential(azureApiKey));
 
-        // Azure OpenAIを呼び出し
         const result = await client.getChatCompletions(deploymentId, [
-            { role: "system", content: "あなたは優秀な試験問題作成者です。" },
+            { role: "system", content: "あなたは優秀な試験作成アシスタントです。必ず指定されたJSON形式で回答してください。" },
             { role: "user", content: prompt }
         ]);
 
-        const responseText = result.choices[0].message?.content;
+        const responseText = result.choices[0].message?.content || "";
+        
+        // AIの回答からJSON部分だけを抽出（念のため）
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        const finalJson = jsonMatch ? JSON.parse(jsonMatch[0]) : { questions: [] };
 
-        // フロントエンドに結果を返す
         context.res = {
             status: 200,
             headers: { "Content-Type": "application/json" },
-            body: { result: responseText }
+            body: finalJson // JSONオブジェクトとして返す
         };
 
     } catch (error: any) {
-        context.log.error("Error in generate function:", error);
+        context.log.error(error);
         context.res = {
             status: 500,
-            body: { error: "AI生成中にエラーが発生しました", details: error.message }
+            headers: { "Content-Type": "application/json" },
+            body: { error: "AI生成に失敗しました", details: error.message }
         };
     }
 };
