@@ -115,7 +115,7 @@ export default function BookmarksPage() {
         <header className="mb-6 sm:mb-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-amber-600 p-2 sm:p-3 rounded-full">
-              <BookOpen className="text-white" size={24} className="sm:w-7 sm:h-7" />
+              <BookOpen className="text-white sm:w-7 sm:h-7" size={24} />
             </div>
             <h1 className="text-2xl sm:text-4xl font-bold text-slate-800">ブックマーク済み問題</h1>
           </div>
