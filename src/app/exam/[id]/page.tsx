@@ -262,3 +262,13 @@ export default function ExamQuestionPage() {
     </main>
   );
 }
+
+// 静的エクスポートのための設定を追加
+export function generateStaticParams() {
+  // ビルド時には具体的なIDを生成せず、実行時（ブラウザ）にsessionStorageからデータを取得するようにします。
+  // 空の配列を返すことで、ビルドエラーを回避します。
+  return [];
+}
+
+// 動的なパラメータ（URL）を許可する設定
+export const dynamicParams = true;
