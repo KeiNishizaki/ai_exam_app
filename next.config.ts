@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
-
 const nextConfig: NextConfig = {
-  /* config options here */
-  // output: 'export', // これを追加
-  // reactCompiler: true,
+  output: 'export',          // これが重要！
+  images: { unoptimized: true },
 };
-
 export default nextConfig;
