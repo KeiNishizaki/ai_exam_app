@@ -1,0 +1,7 @@
+{
+  "platform": {
+    "apiLanguage": "node",
+    "nodeVersion": "20"
+  },
+  "apiRuntime": "node:20"
+}
