@@ -4,51 +4,40 @@ import { OpenAIClient, AzureKeyCredential } from "@azure/openai";
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
     try {
-        // フロントエンドから送られてくるデータ（body）を取得
-        const { examType, questionCount, difficulty, referenceUrl, referenceText } = req.body || {};
+        const { examType, questionCount, difficulty, referenceText } = req.body || {};
 
-        // 送られてきた情報を元にAIへの命令文（プロンプト）を作成
-        const prompt = `
-            以下の条件で試験問題を ${questionCount} 問作成してください。
-            - 試験タイプ: ${examType}
-            - 難易度: ${difficulty}
-            ${referenceText ? `- 参考テキスト: ${referenceText}` : ""}
-            ${referenceUrl ? `- 参考URL: ${referenceUrl}` : ""}
-            
-            レスポンスは必ず以下のJSON形式で返してください。
-            {"questions": [{"question": "問題文", "options": ["A", "B", "C", "D"], "answer": "正解"}]}
-        `;
+        const prompt = `試験問題を作成してください。
+        必ず以下のJSON形式のみを返し、解説や挨拶は一切含めないでください。
+        {"questions": [{"question": "問題文", "options": ["A", "B", "C", "D"], "answer": "正解"}]}
+        
+        条件：タイプは${examType}、問題数は${questionCount}、難易度は${difficulty}。
+        参考資料：${referenceText || "なし"}`;
 
         const endpoint = process.env.AZURE_OPENAI_ENDPOINT || "";
         const azureApiKey = process.env.AZURE_OPENAI_API_KEY || "";
-        const deploymentId = "gpt-4o"; // Azureで設定したデプロイ名
-
         const client = new OpenAIClient(endpoint, new AzureKeyCredential(azureApiKey));
 
-        const result = await client.getChatCompletions(deploymentId, [
-            { role: "system", content: "あなたは優秀な試験作成アシスタントです。必ず指定されたJSON形式で回答してください。" },
+        const result = await client.getChatCompletions("gpt-4o-mini", [
             { role: "user", content: prompt }
         ]);
 
-        const responseText = result.choices[0].message?.content || "";
-        
-        // AIの回答からJSON部分だけを抽出（念のため）
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        const finalJson = jsonMatch ? JSON.parse(jsonMatch[0]) : { questions: [] };
+        let responseText = result.choices[0].message?.content || "";
+
+        // ★【重要】Markdownの「```json」などの装飾を削除する処理
+        responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+
+        // 文字列をオブジェクトに変換して返す
+        const finalData = JSON.parse(responseText);
 
         context.res = {
             status: 200,
             headers: { "Content-Type": "application/json" },
-            body: finalJson // JSONオブジェクトとして返す
+            body: finalData 
         };
 
     } catch (error: any) {
         context.log.error(error);
-        context.res = {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-            body: { error: "AI生成に失敗しました", details: error.message }
-        };
+        context.res = { status: 500, body: { error: "JSON解析失敗", details: error.message } };
     }
 };
 
