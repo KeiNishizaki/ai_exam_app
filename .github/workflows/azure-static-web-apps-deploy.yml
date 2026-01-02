@@ -30,6 +30,7 @@ jobs:
           app_location: "/"          # Next.js のソースコードがある場所
           api_location: "api"        # ステップ1で作った Azure Functions のフォルダ
           output_location: "out"     # next export で出力される静的ファイルのフォルダ
+          api_build_command: "npm run build" # ← これを強制的に追加
           ############################################
 
   close_pull_request_job:

@@ -2,11 +2,12 @@
   "name": "api",
   "version": "1.0.0",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "start": "func start"
   },
   "dependencies": {
-    "@azure/functions": "^3.5.0",
-    "@azure/openai": "1.0.0-beta.12"
+    "@azure/functions": "^3.0.0",
+    "@azure/openai": "^1.0.0-beta.12"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
