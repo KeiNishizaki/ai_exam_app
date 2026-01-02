@@ -35,18 +35,20 @@ export async function POST(req: Request) {
       deployment: "gpt-4o-mini",
     });
 
-    // 3. プロンプトの構築
+    // 3. プロンプトの構築（ここを修正：外側を {} にするよう指示）
     let prompt = `「${examType}」という試験に関する4択問題を${questionCount}問、難易度は「${difficulty}」で生成してください。`;
     
     if (referenceInfo) {
       prompt += `\n\n参考資料：\n${referenceInfo}`;
     }
     
-    prompt += `\n\n必ず以下のJSON形式のみで回答してください。配列形式で、複数の問題を含める必要があります。
-
-    [
-      {"question":"問題文","options":["選択肢1","選択肢2","選択肢3","選択肢4"],"answer":0,"explanation":"解説"}
-    ]`;
+    // JSONの形式指定を変更
+    prompt += `\n\n必ず以下のJSON形式のみで回答してください。
+    {
+      "questions": [
+        {"question":"問題文","options":["選択肢1","選択肢2","選択肢3","選択肢4"],"answer":0,"explanation":"解説"}
+      ]
+    }`;
 
     // 4. AIに依頼
     const result = await client.chat.completions.create({
@@ -58,8 +60,11 @@ export async function POST(req: Request) {
       response_format: { type: "json_object" }
     });
 
-    const content = result.choices[0].message?.content || "[]";
-    return NextResponse.json(JSON.parse(content));
+    const content = result.choices[0].message?.content || '{"questions":[]}';
+    const parsedData = JSON.parse(content);
+    
+    // フロントエンド（generate/page.tsx）が「配列」を期待しているので、questionsの中身だけを返す
+    return NextResponse.json(parsedData.questions || []);
     
   } catch (error) {
     console.error("Error details:", error);
