@@ -5,6 +5,14 @@
     "nodeVersion": "20"
   },
   "navigationFallback": {
-    "rewrite": "/index.html"
-  }
+    "rewrite": "/index.html",
+    "exclude": ["/api/*"] 
+  },
+  "routes": [
+    {
+      "route": "/api/*",
+      "methods": ["POST", "GET", "OPTIONS"],
+      "allowedRoles": ["anonymous"]
+    }
+  ]
 }
