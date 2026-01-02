@@ -13,5 +13,5 @@
       "name": "res"
     }
   ],
-  "scriptFile": "../dist/generate/index.js"
+  "scriptFile": "./index.ts"
 }
