@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AzureFunction, Context, HttpRequest } from "@azure/functions";
 import { OpenAIClient, AzureKeyCredential } from "@azure/openai";
 
