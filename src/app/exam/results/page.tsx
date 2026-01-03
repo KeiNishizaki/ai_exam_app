@@ -31,7 +31,17 @@ export default function ResultsPage() {
     
     const storedAnswers = sessionStorage.getItem('exam-answers');
     if (storedAnswers) {
-      setAnswers(JSON.parse(storedAnswers));
+      try {
+        const parsed = JSON.parse(storedAnswers);
+        const normalized: Record<number, number> = {};
+        Object.keys(parsed).forEach((k) => {
+          const num = Number(k);
+          if (!Number.isNaN(num)) normalized[num] = parsed[k];
+        });
+        setAnswers(normalized);
+      } catch (e) {
+        console.error('exam-answers parse error', e);
+      }
     }
 
     // 結果ページにしたら紙吹雪
@@ -133,6 +143,7 @@ export default function ResultsPage() {
             {session.questions.map((q, idx) => {
               const userAnswer = answers[idx];
               const isCorrect = userAnswer === q.answer;
+              const userAnswerLabel = typeof userAnswer === 'number' ? String.fromCharCode(65 + userAnswer) : '未回答';
               
               return (
                 <div key={idx} className={`p-3 sm:p-4 rounded-lg border-l-4 ${
@@ -146,7 +157,7 @@ export default function ResultsPage() {
                         問 {idx + 1}: {q.question}
                       </p>
                       <p className="text-xs sm:text-sm text-slate-600">
-                        あなたの答え: <span className="font-medium">{String.fromCharCode(65 + (userAnswer ?? -1))}</span>
+                        あなたの答え: <span className="font-medium">{userAnswerLabel}</span>
                         {!isCorrect && (
                           <>
                             {' → '}

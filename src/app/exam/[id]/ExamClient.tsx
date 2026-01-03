@@ -24,7 +24,8 @@ export default function ExamQuestionPage() {
   const params = useParams();
   const questionIndex = parseInt(params.id as string, 10);
   
-  const [session, setSession] = useState<ExamSession | null>(null);
+  // null = not found, undefined = loading
+  const [session, setSession] = useState<ExamSession | null | undefined>(undefined);
   const [selectedAnswer, setSelectedAnswer] = useState<number | undefined>(undefined);
   const [isAnswered, setIsAnswered] = useState(false);
   const { bookmarks, addBookmark, removeBookmark, isBookmarked, isLoaded } = useBookmarks();
@@ -33,10 +34,37 @@ export default function ExamQuestionPage() {
     const stored = sessionStorage.getItem('exam-session');
     if (stored) {
       setSession(JSON.parse(stored));
+    } else {
+      setSession(null);
     }
   }, []);
 
-  if (!session || questionIndex >= session.questions.length) {
+  // セッションが読み込み中ならローディング表示
+  if (session === undefined) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-600">読み込み中...</div>
+      </main>
+    );
+  }
+
+  if (session === null) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
+        <div className="max-w-2xl mx-auto text-center pt-20">
+          <h1 className="text-2xl font-bold text-slate-800 mb-4">セッションが見つかりません</h1>
+          <p className="text-slate-600 mb-4">先に問題を生成してください。</p>
+          <Link href="/generate">
+            <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition">
+              問題を生成する
+            </button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (questionIndex >= session.questions.length) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
         <div className="max-w-2xl mx-auto text-center pt-20">
