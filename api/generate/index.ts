@@ -57,11 +57,47 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
                     answer = 0;
                 }
 
+                // 抽出: 解説フィールドの候補を探す
+                let explanation = '';
+                const explKeys = ['explanation','explain','解説','explanationText','analysis','comment','解説文'];
+                for (const k of explKeys) {
+                    if (q[k]) {
+                        explanation = String(q[k]).trim();
+                        break;
+                    }
+                }
+
+                // q.question に解説が埋め込まれている場合 (例: "問題文...\n解説: ...") を分離
+                let questionText = q.question ?? '';
+                if (!explanation) {
+                    const qStr = String(questionText);
+                    const m = qStr.match(/(?:\r?\n|\s)*(解説|解説：|解説:)([\s\S]*)$/);
+                    if (m) {
+                        questionText = qStr.slice(0, m.index).trim();
+                        explanation = m[2].trim();
+                    }
+                }
+
+                // 解説がまだ空で、選択肢や正解表記が問題文に混入している場合は後半を取り出す
+                if (!explanation) {
+                    const qStr = String(questionText);
+                    // 正解: ... の直後に空行があり、その後に解説が来るパターンを探す
+                    const m2 = qStr.match(/正解[:：][\s\S]*?(?:\r?\n){1,2}([\s\S]+)/);
+                    if (m2) {
+                        explanation = m2[1].trim();
+                        // 問題文からは正解以降を切り詰める
+                        questionText = qStr.replace(/正解[:：][\s\S]*/,'').trim();
+                    }
+                }
+
+                // 最終フォールバック: 空文字列にする
+                explanation = explanation || '';
+
                 return {
-                    question: q.question ?? '',
-                    options,
+                    question: questionText,
+                    options: options.map((o:any) => (typeof o === 'string' ? o.trim() : String(o))),
                     answer,
-                    explanation: q.explanation ?? ''
+                    explanation
                 };
             });
         };
