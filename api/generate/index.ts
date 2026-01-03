@@ -29,10 +29,55 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
         // 文字列をオブジェクトに変換して返す
         const finalData = JSON.parse(responseText);
 
+        // 正解の表現はモデル依存のため、ここで正規化する
+        const normalizeQuestions = (questions: any[]) => {
+            return questions.map((q) => {
+                const options = Array.isArray(q.options) ? q.options : [];
+                let answer = q.answer;
+
+                if (typeof answer === 'string') {
+                    const s = answer.trim();
+                    // 単一のアルファベット(A,B,C...)ならインデックスに変換
+                    if (/^[A-Za-z]$/.test(s)) {
+                        answer = s.toUpperCase().charCodeAt(0) - 65;
+                    } else if (/^\d+$/.test(s)) {
+                        // 数字文字列なら数値に
+                        answer = Number(s);
+                    } else {
+                        // 選択肢の文字列と一致するものを探す
+                        const idx = options.findIndex((opt: any) => {
+                            if (typeof opt === 'string') return opt.trim() === s;
+                            return String(opt).trim() === s;
+                        });
+                        answer = idx !== -1 ? idx : 0;
+                    }
+                }
+
+                if (typeof answer !== 'number' || Number.isNaN(answer) || answer < 0 || answer >= options.length) {
+                    answer = 0;
+                }
+
+                return {
+                    question: q.question ?? '',
+                    options,
+                    answer,
+                    explanation: q.explanation ?? ''
+                };
+            });
+        };
+
+        let bodyData = finalData;
+        if (Array.isArray(finalData)) {
+            bodyData = { questions: normalizeQuestions(finalData) };
+        } else if (finalData && Array.isArray(finalData.questions)) {
+            finalData.questions = normalizeQuestions(finalData.questions);
+            bodyData = finalData;
+        }
+
         context.res = {
             status: 200,
             headers: { "Content-Type": "application/json" },
-            body: finalData 
+            body: bodyData
         };
 
     } catch (error: any) {
